@@ -40,11 +40,38 @@ rerf <- function(X, y, re, data,
   
 }
 
+## ---------Examples-----------
+library(pdp)
+library(vip)
+
+## Sleep example
 sleep <- read.csv("data/sleepstudy.csv")
 
 X = data.frame(Days = sleep$Days)
 y = sleep$Reaction
+re = "(1 | Subject)"
 
-re = "(Days | Subject)"
+fit_rerf <- rerf(X, y, re, data = sleep, max_iter = 100)
+fit_rf <- randomForest(X, y, data = sleep)
 
-fit <- rerf(X, y, re, data = sleep, max_iter = 100)
+## Theophylline example
+theop <- read.csv("data/theophyllineData.csv")
+
+X = data.frame(time = theop$time, weight = theop$weight)
+y = theop$concentration
+re = "(1 | id)"
+
+fit_rerf <- rerf(X, y, re, data = theop, max_iter = 100)
+fit_rf <- randomForest(X, y, data = theop)
+
+pdp_rerf <- partial(fit_rerf$rf, "time", train = theop)
+pdp_rf <- partial(fit_rf, "time", train = theop)
+
+plot_df <- rbind(pdp_rf, pdp_rerf)
+plot_df$model <- rep(c("rf", "rerf"), each = nrow(pdp_rf))
+
+library(ggplot2)
+ggplot(plot_df, aes(x = time, y = yhat, col = model)) +
+  geom_line()
+
+hist(fit_rerf$re$id[, 1])
